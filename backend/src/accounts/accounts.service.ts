@@ -27,6 +27,9 @@ export class AccountsService {
           ...acc.toObject(),
           income: metrics.income,
           expenses: metrics.expenses,
+          transfersIn: metrics.transfersIn,
+          transfersOut: metrics.transfersOut,
+          netTransfers: metrics.transfersIn - metrics.transfersOut,
           balance: metrics.balance,
         };
       }),
@@ -35,7 +38,7 @@ export class AccountsService {
     return accountsWithMetrics;
   }
 
-  async findOne(id: string, userId: string, monthStr?: string) {
+  async findOne(id: string, userId: string, monthStr?: string, startDate?: string, endDate?: string) {
     const userObjectId = new Types.ObjectId(userId);
     const accObjectId = new Types.ObjectId(id);
 
@@ -52,7 +55,7 @@ export class AccountsService {
 
     // Month metrics for active period
     const effectiveMonth = monthStr || 'September 2026';
-    const monthMetrics = await this.getAccountMetrics(userId, id, effectiveMonth);
+    const monthMetrics = await this.getAccountMetrics(userId, id, effectiveMonth, { startDate, endDate });
 
     // Budget for this account in the requested month
     const budget = await this.budgetModel.findOne({
@@ -72,7 +75,10 @@ export class AccountsService {
       balance: lifetimeMetrics.balance,
       income: monthMetrics.income,
       expenses: monthMetrics.expenses,
-      netRemaining: monthMetrics.income - monthMetrics.expenses,
+      transfersIn: monthMetrics.transfersIn,
+      transfersOut: monthMetrics.transfersOut,
+      netTransfers: monthMetrics.transfersIn - monthMetrics.transfersOut,
+      netRemaining: monthMetrics.balance,
       budgetAmount,
       spent,
       remaining,
@@ -130,12 +136,27 @@ export class AccountsService {
     return { message: 'Account and associated transactions deleted successfully' };
   }
 
-  async getAccountMetrics(userId: string, accountId: string, monthStr?: string) {
+  async getAccountMetrics(
+    userId: string,
+    accountId: string,
+    monthStr?: string,
+    dateRange?: { startDate?: string; endDate?: string },
+  ) {
     const userObjectId = new Types.ObjectId(userId);
     const accObjectId = new Types.ObjectId(accountId);
 
     const matchConditions: any = { userId: userObjectId };
-    if (monthStr) {
+    if (dateRange?.startDate || dateRange?.endDate) {
+      matchConditions.date = {};
+      if (dateRange.startDate) {
+        const [year, month, day] = dateRange.startDate.split('-').map(Number);
+        matchConditions.date.$gte = new Date(year, month - 1, day);
+      }
+      if (dateRange.endDate) {
+        const [year, month, day] = dateRange.endDate.split('-').map(Number);
+        matchConditions.date.$lte = new Date(year, month - 1, day, 23, 59, 59, 999);
+      }
+    } else if (monthStr) {
       // monthStr like "2026-09" or "September 2026"
       const dateRange = this.parseMonthRange(monthStr);
       if (dateRange) {

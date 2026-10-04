@@ -59,7 +59,27 @@ export class ReportsService {
       if (item._id === 'Transfer') totalTransfers = item.total;
     }
 
-    const netRemaining = totalIncome - totalExpenses;
+    let transfersIn = 0;
+    let transfersOut = 0;
+    if (query.accountId && query.accountId !== 'all') {
+      const accountObjectId = new Types.ObjectId(query.accountId);
+      const transferMatch: any = { userId: userObjectId, type: 'Transfer' };
+      if (match.date) transferMatch.date = match.date;
+      const [transferInAgg, transferOutAgg] = await Promise.all([
+        this.transactionModel.aggregate([
+          { $match: { ...transferMatch, transferToAccountId: accountObjectId } },
+          { $group: { _id: null, total: { $sum: '$amount' } } },
+        ]),
+        this.transactionModel.aggregate([
+          { $match: { ...transferMatch, accountId: accountObjectId } },
+          { $group: { _id: null, total: { $sum: '$amount' } } },
+        ]),
+      ]);
+      transfersIn = transferInAgg[0]?.total || 0;
+      transfersOut = transferOutAgg[0]?.total || 0;
+    }
+
+    const netRemaining = totalIncome - totalExpenses + transfersIn - transfersOut;
 
     // Calculate distinct spending days for accurate Average Spend
     const expenseDaysAgg = await this.transactionModel.aggregate([
@@ -106,6 +126,9 @@ export class ReportsService {
       totalIncome,
       totalExpenses,
       totalTransfers,
+      transfersIn,
+      transfersOut,
+      netTransfers: transfersIn - transfersOut,
       netRemaining,
       averageSpend,
       monthlyTarget,
@@ -151,9 +174,63 @@ export class ReportsService {
             type: '$type',
           },
           total: { $sum: '$amount' },
+          transfersIn: {
+            $sum: {
+              $cond: [
+                { $and: [{ $eq: ['$type', 'Transfer'] }, { $ne: ['$transferToAccountId', null] }] },
+                '$amount',
+                0,
+              ],
+            },
+          },
+          transfersOut: {
+            $sum: {
+              $cond: [
+                { $and: [{ $eq: ['$type', 'Transfer'] }, { $ne: ['$accountId', null] }] },
+                '$amount',
+                0,
+              ],
+            },
+          },
         },
       },
     ]);
+
+    let transfersByMonthIn: any[] = [];
+    let transfersByMonthOut: any[] = [];
+    if (query.accountId && query.accountId !== 'all') {
+      const transferMatch = {
+        userId: userObjectId,
+        type: 'Transfer',
+        date: { $gte: start, $lte: end },
+      };
+      [transfersByMonthIn, transfersByMonthOut] = await Promise.all([
+        this.transactionModel.aggregate([
+          { $match: { ...transferMatch, transferToAccountId: new Types.ObjectId(query.accountId) } },
+          {
+            $group: {
+              _id: {
+                year: { $year: { date: '$date', timezone } },
+                month: { $month: { date: '$date', timezone } },
+              },
+              total: { $sum: '$amount' },
+            },
+          },
+        ]),
+        this.transactionModel.aggregate([
+          { $match: { ...transferMatch, accountId: new Types.ObjectId(query.accountId) } },
+          {
+            $group: {
+              _id: {
+                year: { $year: { date: '$date', timezone } },
+                month: { $month: { date: '$date', timezone } },
+              },
+              total: { $sum: '$amount' },
+            },
+          },
+        ]),
+      ]);
+    }
 
     const monthNames = [
       'January', 'February', 'March', 'April', 'May', 'June',
@@ -169,14 +246,23 @@ export class ReportsService {
       const bucketMonth = bucket.getMonth() + 1;
       const incItem = agg.find((a) => a._id.year === bucketYear && a._id.month === bucketMonth && a._id.type === 'Income');
       const expItem = agg.find((a) => a._id.year === bucketYear && a._id.month === bucketMonth && a._id.type === 'Expense');
+      const transferItem = agg.find((a) => a._id.year === bucketYear && a._id.month === bucketMonth && a._id.type === 'Transfer');
       const inc = incItem?.total || 0;
       const exp = expItem?.total || 0;
+      const transfersIn = query.accountId && query.accountId !== 'all'
+        ? transfersByMonthIn.find((a) => a._id.year === bucketYear && a._id.month === bucketMonth)?.total || 0
+        : transferItem?.transfersIn || 0;
+      const transfersOut = query.accountId && query.accountId !== 'all'
+        ? transfersByMonthOut.find((a) => a._id.year === bucketYear && a._id.month === bucketMonth)?.total || 0
+        : transferItem?.transfersOut || 0;
       result.push({
         month: `${monthShort[bucket.getMonth()]} ${String(bucketYear).slice(-2)}`,
         monthFull: `${monthNames[bucket.getMonth()]} ${bucketYear}`,
         income: inc,
         expenses: exp,
-        netRemaining: inc - exp,
+        transfersIn,
+        transfersOut,
+        netRemaining: inc - exp + transfersIn - transfersOut,
       });
       bucket.setMonth(bucket.getMonth() + 1);
     }
@@ -283,7 +369,33 @@ export class ReportsService {
           { $group: { _id: null, total: { $sum: '$amount' } } },
         ]);
         const expenses = expenseAgg[0]?.total || 0;
-        const netRemaining = income - expenses;
+        const [transferOutAgg, transferInAgg] = await Promise.all([
+          this.transactionModel.aggregate([
+            {
+              $match: {
+                userId: userObjectId,
+                accountId: accId,
+                type: 'Transfer',
+                date: dateFilter,
+              },
+            },
+            { $group: { _id: null, total: { $sum: '$amount' } } },
+          ]),
+          this.transactionModel.aggregate([
+            {
+              $match: {
+                userId: userObjectId,
+                transferToAccountId: accId,
+                type: 'Transfer',
+                date: dateFilter,
+              },
+            },
+            { $group: { _id: null, total: { $sum: '$amount' } } },
+          ]),
+        ]);
+        const transfersOut = transferOutAgg[0]?.total || 0;
+        const transfersIn = transferInAgg[0]?.total || 0;
+        const netRemaining = income - expenses + transfersIn - transfersOut;
 
         let status = 'On Track';
         if (expenses > income && income > 0) {
@@ -302,6 +414,9 @@ export class ReportsService {
           icon: acc.icon,
           income,
           expenses,
+          transfersIn,
+          transfersOut,
+          netTransfers: transfersIn - transfersOut,
           netRemaining,
           status,
         };
@@ -337,15 +452,39 @@ export class ReportsService {
             $group: {
               _id: '$type',
               total: { $sum: '$amount' },
+              transfersIn: {
+                $sum: {
+                  $cond: [
+                    { $and: [{ $eq: ['$type', 'Transfer'] }, { $ne: ['$transferToAccountId', null] }] },
+                    '$amount',
+                    0,
+                  ],
+                },
+              },
+              transfersOut: {
+                $sum: {
+                  $cond: [
+                    { $and: [{ $eq: ['$type', 'Transfer'] }, { $ne: ['$accountId', null] }] },
+                    '$amount',
+                    0,
+                  ],
+                },
+              },
             },
           },
         ]);
 
         let income = 0;
         let expenses = 0;
+        let transfersIn = 0;
+        let transfersOut = 0;
         for (const item of agg) {
           if (item._id === 'Income') income = item.total;
           if (item._id === 'Expense') expenses = item.total;
+          if (item._id === 'Transfer') {
+            transfersIn = item.transfersIn || 0;
+            transfersOut = item.transfersOut || 0;
+          }
         }
 
         // Check budget for that month
@@ -360,6 +499,8 @@ export class ReportsService {
           month: periodStr,
           income,
           expenses,
+          transfersIn,
+          transfersOut,
           netRemaining: income - expenses,
           budgetUsed,
           totalBudget,

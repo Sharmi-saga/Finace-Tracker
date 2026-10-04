@@ -20,8 +20,10 @@ export class AccountsController {
     @CurrentUser('userId') userId: string,
     @Param('id') id: string,
     @Query('month') month?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
   ) {
-    return this.accountsService.findOne(id, userId, month);
+    return this.accountsService.findOne(id, userId, month, startDate, endDate);
   }
 
   @Post()

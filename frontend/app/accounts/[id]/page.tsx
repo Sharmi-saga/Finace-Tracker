@@ -48,6 +48,7 @@ export default function AccountDetailsPage() {
   const [metrics, setMetrics] = useState({
     income: 0,
     expenses: 0,
+    netTransfers: 0,
     netRemaining: 0,
     averageSpend: 0,
     budgetAmount: 0,
@@ -113,6 +114,7 @@ export default function AccountDetailsPage() {
       setMetrics({
         income: inc,
         expenses: exp,
+        netTransfers: accData.netTransfers ?? 0,
         netRemaining: net,
         averageSpend: avg,
         budgetAmount: budgetAmt,
@@ -223,19 +225,26 @@ export default function AccountDetailsPage() {
                   subtitle={dateFilter?.label || selectedMonth}
                 />
                 <MetricCard
+                  title={`${account?.name} Transfers`}
+                  amount={`+${(account?.transfersIn || 0).toLocaleString()} / -${(account?.transfersOut || 0).toLocaleString()}`}
+                  variant="transfer"
+                  icon={ArrowLeftRight}
+                  subtitle="In (+) / Out (-)"
+                />
+                <MetricCard
                   title="Net Remaining"
                   amount={metrics.netRemaining}
                   variant="balance"
                   icon={Scale}
-                  subtitle="Income - Expenses"
+                  subtitle="Income - Expenses (adjusted for transfers)"
                 />
-                <MetricCard
+                {/* <MetricCard
                   title="Average Spend"
                   amount={metrics.averageSpend}
                   variant="neutral"
                   icon={CreditCard}
                   subtitle="Per active day"
-                />
+                /> */}
               </div>
 
               {/* Account Overview Card & This Month Review */}
@@ -255,7 +264,7 @@ export default function AccountDetailsPage() {
                         className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-bold text-blue-600 hover:bg-blue-50 transition shadow-sm"
                       >
                         <Pencil className="w-3.5 h-3.5" />
-                        <span>✎ Edit Account</span>
+                        <span>Edit Account</span>
                       </button>
                     </div>
 
@@ -350,7 +359,7 @@ export default function AccountDetailsPage() {
                           REMAINING
                         </span>
                         <span className="text-xs sm:text-sm font-bold text-slate-900">
-                          LKR {metrics.remaining.toLocaleString()}
+                          LKR {metrics.netRemaining.toLocaleString()}
                         </span>
                       </div>
                     </div>

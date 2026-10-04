@@ -248,7 +248,7 @@ export default function AccountSettingsPage() {
                           className="font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 transition shadow-sm text-xs"
                         >
                           <ExternalLink className="w-3.5 h-3.5" />
-                          <span>↗ View Details</span>
+                          <span>View Details</span>
                         </button>
                       </div>
                     </div>

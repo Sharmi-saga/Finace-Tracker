@@ -253,7 +253,7 @@ export default function ReportsPage() {
                   amount={summary?.netRemaining || 0}
                   variant="balance"
                   icon={Scale}
-                  subtitle="Income - Expenses"
+                  subtitle="Income - Expenses (adjusted for transfers)"
                 />
                 <MetricCard
                   title="Average Spend"
@@ -433,6 +433,7 @@ export default function ReportsPage() {
                         <th className="py-3 px-5">Account</th>
                         <th className="py-3 px-5 text-right">Income</th>
                         <th className="py-3 px-5 text-right">Expenses</th>
+                        <th className="py-3 px-5 text-right">Transfers</th>
                         <th className="py-3 px-5 text-right">Net Remaining</th>
                         <th className="py-3 px-5 text-center">Status</th>
                       </tr>
@@ -453,6 +454,9 @@ export default function ReportsPage() {
                           </td>
                           <td className="py-3 px-5 text-right font-bold text-rose-600">
                             LKR {acc.expenses.toLocaleString()}
+                          </td>
+                          <td className="py-3 px-5 text-right font-bold text-sky-700">
+                            +LKR {acc.transfersIn.toLocaleString()} / -LKR {acc.transfersOut.toLocaleString()}
                           </td>
                           <td className="py-3 px-5 text-right font-extrabold text-slate-900">
                             LKR {acc.netRemaining.toLocaleString()}
@@ -477,7 +481,7 @@ export default function ReportsPage() {
                         <span className="font-bold text-slate-900 text-sm">{acc.name}</span>
                         <StatusBadge status={acc.status} />
                       </div>
-                      <div className="grid grid-cols-3 gap-2 text-xs pt-1 border-t border-slate-200/60">
+                      <div className="grid grid-cols-4 gap-2 text-xs pt-1 border-t border-slate-200/60">
                         <div>
                           <span className="text-slate-400 text-[10px] block">Income</span>
                           <span className="font-bold text-emerald-600">
@@ -488,6 +492,12 @@ export default function ReportsPage() {
                           <span className="text-slate-400 text-[10px] block">Expenses</span>
                           <span className="font-bold text-rose-600">
                             {acc.expenses.toLocaleString()}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-slate-400 text-[10px] block">Transfers</span>
+                          <span className="font-bold text-sky-700">
+                            +{acc.transfersIn.toLocaleString()} / -{acc.transfersOut.toLocaleString()}
                           </span>
                         </div>
                         <div>
@@ -517,6 +527,7 @@ export default function ReportsPage() {
                         <th className="py-3 px-5">Month</th>
                         <th className="py-3 px-5 text-right">Income</th>
                         <th className="py-3 px-5 text-right">Expenses</th>
+                        {/* <th className="py-3 px-5 text-right">Transfers (In / Out)</th> */}
                         <th className="py-3 px-5 text-right">Net Remaining</th>
                         <th className="py-3 px-5 text-center">Budget Used</th>
                       </tr>
@@ -531,6 +542,9 @@ export default function ReportsPage() {
                           <td className="py-3 px-5 text-right font-bold text-rose-600">
                             LKR {m.expenses.toLocaleString()}
                           </td>
+                          {/* <td className="py-3 px-5 text-right font-bold text-sky-700">
+                            +LKR {m.transfersIn.toLocaleString()} / -LKR {m.transfersOut.toLocaleString()}
+                          </td> */}
                           <td className="py-3 px-5 text-right font-extrabold text-slate-900">
                             LKR {m.netRemaining.toLocaleString()}
                           </td>
@@ -558,7 +572,7 @@ export default function ReportsPage() {
                           {m.budgetUsed}
                         </span>
                       </div>
-                      <div className="grid grid-cols-3 gap-2 text-xs pt-1 border-t border-slate-200/60">
+                      <div className="grid grid-cols-4 gap-2 text-xs pt-1 border-t border-slate-200/60">
                         <div>
                           <span className="text-slate-400 text-[10px] block">Income</span>
                           <span className="font-bold text-emerald-600">
@@ -569,6 +583,12 @@ export default function ReportsPage() {
                           <span className="text-slate-400 text-[10px] block">Expenses</span>
                           <span className="font-bold text-rose-600">
                             {m.expenses.toLocaleString()}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-slate-400 text-[10px] block">Transfers In / Out</span>
+                          <span className="font-bold text-sky-700">
+                            +{m.transfersIn.toLocaleString()} / -{m.transfersOut.toLocaleString()}
                           </span>
                         </div>
                         <div>

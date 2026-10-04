@@ -22,6 +22,9 @@ export type Account = {
   status: 'Active' | 'Inactive';
   income?: number;
   expenses?: number;
+  transfersIn?: number;
+  transfersOut?: number;
+  netTransfers?: number;
   balance?: number;
   netRemaining?: number;
   createdAt: string;
@@ -129,6 +132,8 @@ export type MonthlyIncomeExpense = {
   monthFull: string;
   income: number;
   expenses: number;
+  transfersIn: number;
+  transfersOut: number;
   netRemaining: number;
 };
 
@@ -140,6 +145,9 @@ export type AccountSummaryItem = {
   icon: string;
   income: number;
   expenses: number;
+  transfersIn: number;
+  transfersOut: number;
+  netTransfers: number;
   netRemaining: number;
   status: string;
 };
@@ -148,6 +156,8 @@ export type MonthlySummaryItem = {
   month: string;
   income: number;
   expenses: number;
+  transfersIn: number;
+  transfersOut: number;
   netRemaining: number;
   budgetUsed: string;
   totalBudget: number;

@@ -147,7 +147,7 @@ export default function DashboardPage() {
           </div>
 
           {/* KPI Metrics Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
             <MetricCard
               title="Total Income"
               amount={summary?.totalIncome || 0}
@@ -162,19 +162,19 @@ export default function DashboardPage() {
               icon={TrendingDown}
               subtitle="Recorded this month"
             />
-            <MetricCard
+            {/* <MetricCard
               title="Current Balance"
               amount={summary?.netRemaining || 0}
               variant="balance"
               icon={Wallet}
               subtitle="Income minus expenses"
-            />
+            /> */}
             <MetricCard
               title="Net Remaining"
               amount={summary?.netRemaining || 0}
               variant="neutral"
               icon={Scale}
-              subtitle="Net available capital"
+              subtitle="Income - Expenses"
             />
           </div>
 
@@ -234,7 +234,7 @@ export default function DashboardPage() {
                         </span>
                       </div>
 
-                      <div className="grid grid-cols-3 gap-2 pt-2 border-t border-slate-200/60 text-xs">
+                      <div className="grid grid-cols-4 gap-2 pt-2 border-t border-slate-200/60 text-xs">
                         <div>
                           <span className="text-[10px] text-slate-400 block font-medium">
                             Income
@@ -249,6 +249,14 @@ export default function DashboardPage() {
                           </span>
                           <span className="font-bold text-rose-600">
                             {(acc.expenses || 0).toLocaleString()}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-[10px] text-slate-400 block font-medium">
+                            Transfers
+                          </span>
+                          <span className="font-bold text-sky-700">
+                            +{(acc.transfersIn || 0).toLocaleString()} / -{(acc.transfersOut || 0).toLocaleString()}
                           </span>
                         </div>
                         <div>
